@@ -9,4 +9,4 @@ Made this little project out of boredom.
 Discord Bot API (Token for bot account)
 
 https://nova-oss.com/
-NovaAI API  (for free, open source, easy to use, and powerful API for accessing all sorts of AI models.
+NovaAI API  (for free, open source, easy to use, and powerful API for accessing all sorts of AI models.)
