@@ -1,33 +1,30 @@
 import discord
 from discord.ext import commands
 import openai as novaai
-import json
+import os
 
 from keep_alive import keep_alive
 keep_alive()
 
 # Initialize your bot
-bot_token = "Discord Bot Token"
+bot_token = os.environ.get("DISCORD_BOT_TOKEN")
 intents = discord.Intents.default()
 intents.typing = False
 intents.presences = False
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Set the NOVA AI API base and key
-novaai.api_base = 'https://api.nova-oss.com/v1'
-novaai.api_key = 'NovaAI API key'
-
+novaai.api_base = os.environ.get("NOVA_API_BASE")
+novaai.api_key = os.environ.get("NOVA_API_KEY")
 
 # Dictionary to track conversations with users
 user_conversations = {}
 
 @bot.event
 async def on_ready():
-  print(f'Logged in as {bot.user.name}')
-
-  # Set the bot's custom status
-  custom_status = discord.CustomActivity(name="'!dwen @DwenAI' to interact!")
-  await bot.change_presence(activity=custom_status)
+    print(f'Logged in as {bot.user.name}')
+    custom_status = discord.Game('!dwen @DwenAI to interact!')
+    await bot.change_presence(activity=custom_status)
 
 @bot.event
 async def on_message(message):
@@ -38,29 +35,32 @@ async def on_message(message):
         user_message = message.content[6:]  # Remove the command prefix
         user_id = message.author.id
 
-        # Get the conversation for this user or create a new one
         if user_id in user_conversations:
             conversation = user_conversations[user_id]
         else:
             conversation = []
             user_conversations[user_id] = conversation
 
+        # Include a system message to set the AI identity
+        messages = [
+            {"role": "system", "content": "DwenAI."},
+            {"role": "user", "content": user_message}
+        ]
+
         conversation.append(f"User: {user_message}")
 
-        # Send user's message to NOVA AI API and get a response
-        response = get_nova_response(user_message)
+        # Send the messages to the NOVA AI API and get a response
+        response = get_nova_response(messages)
 
-        conversation.append(f"Bot: {response}")
+        conversation.append(f"DwenAI: {response}")
 
         await message.channel.send(response)
 
+        # Handle questions about the developer
+        if "who made" in user_message.lower() or "who developed" in user_message.lower():
+            await message.channel.send(".")
 
-
-def get_nova_response(user_message):
-    # Prepare the message as per the API documentation
-    messages = [{"role": "user", "content": user_message}]
-
-    # Make a request to NOVA AI API
+def get_nova_response(messages):
     try:
         response = novaai.ChatCompletion.create(
             model="gpt-3.5-turbo",
